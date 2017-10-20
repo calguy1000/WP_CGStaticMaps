@@ -5,8 +5,8 @@ final class widget extends \WP_Widget
 {
     public function __construct()
     {
-        parent::__construct( 'cgstaticmap', __('Static Map'),
-                             [  'classname' => 'widget_cgsm', 'description'=>__('A Static map of a single location') ] );
+        parent::__construct( 'cgstaticmap', __('Static Map', CGSM_TEXTDOMAIN),
+                             [  'classname' => 'widget_cgsm', 'description'=>__('A Static map of a single location', CGSM_TEXTDOMAIN) ] );
     }
 
     protected function get_map_html( $instance )
@@ -51,7 +51,7 @@ final class widget extends \WP_Widget
         $do_text_field = function( $name, $val ) {
             $fmt = '<label for="%s">%s</label>';
             $id = $this->get_field_id( $name );
-            $out = sprintf( $fmt, $id, __(ucwords($name)).':' );
+            $out = sprintf( $fmt, $id, __(ucwords($name)).':' ,CGSM_TEXTDOMAIN);
             $fmt = '<input class="widefat" type="text" id="%s" name="%s" value="%s"/>';
             $out .= sprintf( $fmt, $id, $this->get_field_name( $name ), esc_attr( $val ) );
             return $out;
@@ -60,7 +60,7 @@ final class widget extends \WP_Widget
         $do_range_field = function( $name, $val, $min = 1, $max = 100 ) {
             $fmt = '<label for="%s">%s</label>';
             $id = $this->get_field_id( $name );
-            $out = sprintf( $fmt, $id, __(ucwords($name)).':' );
+            $out = sprintf( $fmt, $id, __(ucwords($name)).':' ,CGSM_TEXTDOMAIN);
             $fmt = '<input class="widefat" type="range" id="%s" name="%s" value="%s" min="%s" max="%s"/>';
             $out .= sprintf( $fmt, $id, $this->get_field_name( $name ), (int) $val, (int) $min, (int) $max  );
             return $out;

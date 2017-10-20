@@ -24,8 +24,8 @@ final class settings_page
         add_settings_section( $this->pagename.'_1', $this->title, null, $this->pagename );
         // here, I could read field definitions from a file.
 
-        $this->add_field( 'api_key', __('API Key'), 'text' );
-        $this->add_field( 'docache', __('Cache Images'), 'checkbox' );
+        $this->add_field( 'api_key', __('API Key',CGSM_TEXTDOMAIN), 'text' );
+        $this->add_field( 'docache', __('Cache Images',CGSM_TEXTDOMAIN), 'checkbox' );
     }
 
     public function sanitize_settings( $args )
@@ -72,7 +72,7 @@ final class settings_page
     public function render_page()
     {
         if (!current_user_can('manage_options')) {
-            wp_die( __('You do not have sufficient permissions to access this page.') );
+            wp_die( __('You do not have sufficient permissions to access this page.',CGSM_TEXTDOMAIN) );
         }
 
         $settings = $this->plugin->get_settings();
@@ -87,6 +87,6 @@ final class settings_page
 
     public function add_field( $name, $title, $type = 'text' )
     {
-        add_settings_field( $name, __($title), [ $this, 'render_field'], $this->pagename, $this->pagename.'_1', [ 'name'=>$name, 'type'=>$type ] );
+        add_settings_field( $name, __($title,CGSM_TEXTDOMAIN), [ $this, 'render_field'], $this->pagename, $this->pagename.'_1', [ 'name'=>$name, 'type'=>$type ] );
     }
 } // end of class
