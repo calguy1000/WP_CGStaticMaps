@@ -7,6 +7,7 @@ final class settings_page
     private $title;
     private $pagename;
     private $settings_group;
+    private $settings_page;
 
     public function __construct( plugin $plugin, $title = null, $name = 'settings', $settings_group = null, $option_name = null )
     {
@@ -20,11 +21,18 @@ final class settings_page
         $this->settings_group = $settings_group;
 
         register_setting( $settings_group, $option_name, [ 'sanitize_callback' => [ $this, 'sanitize_settings'] ] );
-        add_options_page('Static Maps', $this->title, 'manage_options', $this->pagename, [ $this, 'render_page' ] );
+        $this->settings_page = add_options_page('Static Maps', $this->title, 'manage_options', $this->pagename, [ $this, 'render_page' ] );
         add_settings_section( $this->pagename.'_1', $this->title, null, $this->pagename );
-        // here, I could read field definitions from a file.
+        add_action('load-'.$this->settings_page, [ $this, 'add_help'] );
 
-        $this->add_field( 'api_key', __('API Key',CGSM_TEXTDOMAIN), 'text' );
+        // here, I could read field definitions from a file.
+        $types = [ static_map::TYPE_ROADMAP => __('Roadmap',CGSM_TEXTDOMAIN),
+                   static_map::TYPE_SATELLITE => __('Satellite', CGSM_TEXTDOMAIN),
+                   static_map::TYPE_HYBRID => __('Hybrid', CGSM_TEXTDOMAIN),
+                   static_map::TYPE_TERRAIN => __('Terrain', CGSM_TEXTDOMAIN),
+            ];
+        $this->add_field( 'type', __('Default Type', CGSM_TEXTDOMAIN), 'dropdown', [ 'options'=>$types ] );
+        $this->add_field( 'markercolor', __('Marker Color',CGSM_TEXTDOMAIN), 'color' );
         $this->add_field( 'docache', __('Cache Images',CGSM_TEXTDOMAIN), 'checkbox' );
     }
 
@@ -42,9 +50,16 @@ final class settings_page
         $field_name = $this->settings_group.'['.$input_name.']';
         $type = ! empty( $args['type'] ) ? strtolower( $args['type'] ) : 'text';
         switch( $type ) {
+        case 'color':
         case 'text':
         case 'checkbox':
-            $create_method = 'create_'.$type.'_field';
+            $create_method = "create_{$type}_field";
+            call_user_func( [ $this, $create_method ], $input_id, $field_name, $value );
+            break;
+        case 'dropdown':
+        case 'select':
+            $options = $args['options'];
+            call_user_func( [ $this, 'create_select_field'], $input_id, $field_name, $value, $options );
             break;
         case 'radio':
         case 'textarea':
@@ -52,7 +67,24 @@ final class settings_page
             wp_die('unhandled field type '.$type);
         }
 
-        call_user_func( [ $this, $create_method ], $input_id, $field_name, $value );
+    }
+
+    public function create_select_field( $id, $name, $value, array $options )
+    {
+        if( !count($options) ) throw new \LogicException('No options passed to '.__METHOD__);
+        $out = "<select id=\"$id\" name=\"$name\">";
+        foreach( $options as $key => $text ) {
+            $out .= "<option value=\"$key\"";
+            if( $key == $value ) $out .= " selected";
+            $out .= ">{$text}</option>";
+        }
+        $out .= "</select>";
+        echo $out;
+    }
+
+    public function create_color_field( $id, $name, $value )
+    {
+        echo "<input type=\"color\" id=\"$id\" name=\"$name\" value=\"$value\"/>";
     }
 
     public function create_text_field( $id, $name, $value )
@@ -67,6 +99,16 @@ final class settings_page
         if( $value ) $txt .= " checked";
         $txt .= "/>";
         echo $txt;
+    }
+
+    public function add_help()
+    {
+        get_current_screen()->add_help_tab(
+            [
+                'id'=> $this->pagename.'-help',
+                'title' => __( $this->title ),
+                'content' => '<p>This is some help</p>'
+            ] );
     }
 
     public function render_page()
@@ -85,8 +127,10 @@ final class settings_page
         echo '</div>';
     }
 
-    public function add_field( $name, $title, $type = 'text' )
+    public function add_field( $name, $title, $type = 'text', array $more = null )
     {
-        add_settings_field( $name, __($title,CGSM_TEXTDOMAIN), [ $this, 'render_field'], $this->pagename, $this->pagename.'_1', [ 'name'=>$name, 'type'=>$type ] );
+        $opts = [ 'name' => $name, 'type'=>$type ];
+        if( is_array($more) && count($more) ) $opts = array_merge( $more, $opts );
+        add_settings_field( $name, __($title,CGSM_TEXTDOMAIN), [ $this, 'render_field'], $this->pagename, $this->pagename.'_1', $opts );
     }
 } // end of class

@@ -8,7 +8,7 @@ function startswith( $str, $sub )
 
 class static_map implements imap
 {
-    private $_data = [ 'type'=>self::TYPE_ROADMAP, 'size'=>'400x400', 'center'=>null, 'language'=>null, 'region'=>null, 'scale'=>null, 'zoom'=>null, 'sensor'=>null, ];
+    private $_data = [ 'maptype'=>self::TYPE_ROADMAP, 'size'=>'400x400', 'center'=>null, 'language'=>null, 'region'=>null, 'scale'=>null, 'zoom'=>null, 'sensor'=>null, ];
     private $_markerSize;
     private $_markerColor;
     private $_markers = [];
@@ -18,7 +18,8 @@ class static_map implements imap
         foreach( $opts as $key => $val ) {
             switch( $key ) {
             case 'type':
-                $this->_data[$key] = $this->parseType( $val );
+            case 'maptype':
+                $this->_data['maptype'] = $this->parseType( $val );
                 break;
             case 'scale':
                 $this->_data[$key] = $this->parseScale( $val );
@@ -64,22 +65,21 @@ class static_map implements imap
 
     protected function parseType( $in )
     {
-        switch( $type ) {
+        switch( $in ) {
         case self::TYPE_ROADMAP:
         case self::TYPE_SATELLITE:
         case self::TYPE_HYBRID:
         case self::TYPE_TERRAIN:
-            return $type;
-            break;
+            return $in;
         default:
-            throw  new \RuntimeException("$type is an invalid map type for ".__CLASS__);
+            throw  new \RuntimeException("$in is an invalid map type for ".__CLASS__);
         }
     }
 
     public function withType( $in )
     {
         $obj = clone $this;
-        $obj->_data['type'] = $this->parseType( $in );
+        $obj->_data['maptype'] = $this->parseType( $in );
         return $obj;
     }
 
@@ -315,9 +315,9 @@ class static_map implements imap
         $idx = $idx % 26; // only 26 labels.
         $label = chr(ord('A')+$idx);
         $out = null;
-        if( $this->_markersize ) $out .= 'size:'.$this->_markersize.'|';
-        if( $this->_markercolor ) $out .= 'color:'.$this->_markercolor.'|';
-        if( $this->_markersize == '' || $this->_markersize != 'tiny' ) $out .= "label:$label|";
+        if( $this->_markerSize ) $out .= 'size:'.$this->_markerSize.'|';
+        if( $this->_markerColor ) $out .= 'color:'.$this->_markerColor.'|';
+        if( $this->_markerSize == '' || $this->_markerSize != 'tiny' ) $out .= "label:$label|";
         $out .= $this->encode_location($marker);
         return $out;
     }

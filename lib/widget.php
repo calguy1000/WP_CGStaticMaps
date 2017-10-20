@@ -13,16 +13,22 @@ final class widget extends \WP_Widget
     {
         // merge instance with default settings
         $plugin = plugin::get_instance();
+        unset( $instance['type'] );
         $opts = $plugin->get_settings();
         $opts = array_merge( $opts, $instance );
 
         // generate the object
-        $map = new static_map( $opts );
-        if( isset( $instance['location']) ) {
-            $map = $map->withMarker( $instance['location'] );
+        try {
+            $map = new static_map( $opts );
+            if( isset( $instance['location']) ) {
+                $map = $map->withMarker( $instance['location'] );
+            }
+            $out = $plugin->get_rendered_map( $map, $opts );
+            return $out;
         }
-        $out = $plugin->get_rendered_map( $map, $opts );
-        return $out;
+        catch( \Exception $e ) {
+            //  do nothing
+        }
     }
 
     public function widget( $args, $instance )
@@ -47,6 +53,8 @@ final class widget extends \WP_Widget
         $height = ! empty( $instance['height'] ) ? (int) $instance['height'] : null;
         $zoom = ! empty( $instance['zoom'] ) ? (int) $instance['zoom'] : 14;
         $location = ! empty( $instance['location'] ) ? $instance['location'] : null;
+        $title = ! empty( $instance['title'] ) ? $instance['title'] : null;
+        $maptype = ! empty( $instance['maptype'] ) ? $instance['maptype'] : null;
 
         $do_text_field = function( $name, $val ) {
             $fmt = '<label for="%s">%s</label>';
@@ -66,16 +74,37 @@ final class widget extends \WP_Widget
             return $out;
         };
 
+        $do_select_field = function( $name, $val, array $options ) {
+            $fmt = '<label for="%s">%s</label>';
+            $id = $this->get_field_id( $name );
+            $out = sprintf( $fmt, $id, __(ucwords($name)).':' ,CGSM_TEXTDOMAIN);
+            $fldname = $this->get_field_name( $name );
+            $out .= "<select class=\"widefat\" id=\"{$id}\" name=\"{$fldname}\">";
+            foreach( $options as $key => $text ) {
+                $out .= "<option value=\"{$key}\"";
+                if( $key == $val ) $out .= " selected";
+                $out .= ">{$text}</option>";
+            }
+            $out .= "</select>";
+            return $out;
+        };
+
         $do_li = function( $in ) {
             return '<li>'.$in.'</li>';
         };
 
+        $types = [ static_map::TYPE_ROADMAP => __('Roadmap',CGSM_TEXTDOMAIN),
+                   static_map::TYPE_SATELLITE => __('Satellite', CGSM_TEXTDOMAIN),
+                   static_map::TYPE_HYBRID => __('Hybrid', CGSM_TEXTDOMAIN),
+                   static_map::TYPE_TERRAIN => __('Terrain', CGSM_TEXTDOMAIN),
+            ];
         $out = '<ul>';
         $out .= $do_li( $do_text_field( 'title', $title, 1, 20 ) );
         $out .= $do_li( $do_text_field( 'location', $location, 1, 20 ) );
+        $out .= $do_li( $do_range_field( 'zoom', $zoom, 1, 20 ) );
         $out .= $do_li( $do_text_field( 'width', $width ) );
         $out .= $do_li( $do_text_field( 'height', $height ) );
-        $out .= $do_li( $do_range_field( 'zoom', $zoom, 1, 20 ) );
+        $out .= $do_li( $do_select_field( 'maptype', $maptype, $types ) );
         $out .= '</ul>';
         echo $out;
     }
@@ -87,6 +116,7 @@ final class widget extends \WP_Widget
         $instance['height'] = ! empty($new_instance['height']) ? (int) $new_instance['height'] : null;
         $instance['zoom'] = ! empty($new_instance['zoom']) ? (int) $new_instance['zoom'] : 14;
         $instance['title'] = ! empty($new_instance['title']) ? sanitize_text_field($new_instance['title']) : null;
+        $instance['maptype'] = ! empty($new_instance['maptype']) ? sanitize_text_field($new_instance['maptype']) : null;
         $instance['location'] = ! empty($new_instance['location']) ? sanitize_text_field($new_instance['location']) : null;
         return $instance;
     }

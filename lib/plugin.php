@@ -76,12 +76,17 @@ final class plugin
         if( isset( $opts['location']) ) {
             $map = $map->withMarker( $opts['location'] );
         }
-        $title = !empty( $opts['title'] ) ? trim($opts['title']) : null;
+        $title = !empty( $opts['title'] ) ? trim($opt['title']) : null;
 
         echo '<div class="cgstaticmap">';
         if( $title ) echo '<h1>'.$title.'</h1>';
-        $out = $this->get_rendered_map( $map, $opts );
-        echo $out;
+        try {
+            $out = $this->get_rendered_map( $map, $opts );
+            echo $out;
+        }
+        catch( \Exception $e ) {
+            // nothing here
+        }
         echo '</div>';
     }
 
@@ -108,8 +113,8 @@ final class plugin
             $dir = $this->get_cache_dir();
             if( !is_dir( $dir ) ) @mkdir( $dir );
             if( !is_dir( $dir ) ) throw new \RuntimeException('Cannot create cache dir '.$dir);
-            $data = file_get_contents( $map->getURL() );
-            file_put_contents( $file, $data );
+            $data = @file_get_contents( $map->getURL() );
+            if( $data ) file_put_contents( $file, $data );
         }
 
         $url = plugin_dir_url( __DIR__)."cache/{$signature}.png";
@@ -129,10 +134,12 @@ final class plugin
         // now, we output the img tag, and any alt/title/class attributes
         $out = '<img';
         $out .= ' src="'.trim($url).'"';
-        if( !empty( $opts['alt']) ) $out .= ' alt="'.trim($opts['alt']).'"';
+        if( empty($opts['alt']) && $opts['location'] ) $opts['alt'] = $opts['location'];
+        if( empty($opts['title']) && $opts['location'] ) $opts['title'] = $opts['location'];
+        $out .= ' alt="'.trim($opts['alt']).'"';
         if( empty( $opts['noatts']) || !$opts['noattrs'] ) {
             if( !empty( $opts['id']) ) $out .= ' id="'.trim($opts['id']).'"';
-            if( !empty( $opts['title']) ) $out .= ' title="'.trim($opts['title']).'"';
+            $out .= ' title="'.trim($opts['title']).'"';
             if( !empty( $opts['class']) ) $out .= ' class="'.trim($opts['class']).'"';
             if( empty( $opts['nosize']) || !$opts['nosize'] ) {
                 $out .= ' width="'.$map->getWidth().'"';
